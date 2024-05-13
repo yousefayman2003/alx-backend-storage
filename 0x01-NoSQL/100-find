@@ -1,0 +1,2 @@
+// Lists documents with regex
+db.school.find({name: /Holberton.*/}).forEach(printjson);
