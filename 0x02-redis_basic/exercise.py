@@ -2,6 +2,7 @@
 """Module that creates Cache class."""
 import redis
 import uuid
+import asyncio
 from functools import wraps
 from typing import Union, Callable, Any, Optional
 
@@ -34,30 +35,20 @@ def call_history(method: Callable) -> Callable:
     return invoker
 
 
-def replay(fn: Callable):
+async def replay(fn: Callable):
     """Display the history of calls of a particular function"""
     r = redis.Redis()
     f_name = fn.__qualname__
-    n_calls = r.get(f_name)
-    try:
-        n_calls = n_calls.decode('utf-8')
-    except Exception:
-        n_calls = 0
+    n_calls = await r.get(f_name)
+    n_calls = n_calls.decode('utf-8') if n_calls else "0"
     print(f'{f_name} was called {n_calls} times:')
 
-    ins = r.lrange(f_name + ":inputs", 0, -1)
-    outs = r.lrange(f_name + ":outputs", 0, -1)
+    ins = await r.lrange(f_name + ":inputs", 0, -1)
+    outs = await r.lrange(f_name + ":outputs", 0, -1)
 
     for i, o in zip(ins, outs):
-        try:
-            i = i.decode('utf-8')
-        except Exception:
-            i = ""
-        try:
-            o = o.decode('utf-8')
-        except Exception:
-            o = ""
-
+        i = i.decode('utf-8') if i else ""
+        o = o.decode('utf-8') if o else ""
         print(f'{f_name}(*{i}) -> {o}')
 
 
